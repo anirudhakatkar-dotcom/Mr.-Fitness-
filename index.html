@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>FORGE</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0A0A0A" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FORGE" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --bg: #0A0A0A;
+      --surface: #131313;
+      --card: #1A1A1A;
+      --border: #272727;
+      --accent: #CCFF00;
+      --accent-dim: rgba(204,255,0,0.10);
+      --accent-border: rgba(204,255,0,0.25);
+      --text: #FFFFFF;
+      --muted: #5A5A5A;
+      --muted-light: #888;
+      --rest-color: #4488FF;
+      --rest-dim: rgba(68,136,255,0.10);
+      --missed-color: #FF4455;
+      --missed-dim: rgba(255,68,85,0.10);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html { height: 100%; }
+    body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      overscroll-behavior: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #app {
+      max-width: 430px;
+      margin: 0 auto;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── VIEWS ── */
+    .view {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: calc(80px + var(--safe-bottom));
+      display: none;
+      scroll-behavior: smooth;
+    }
+    .view.active { display: block; }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: calc(70px + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 100;
+    }
+
+    .nav-btn {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 4px;
+      background: none; border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 8px 24px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-btn svg { width: 20px; height: 20px; }
+    .nav-btn.active { color: var(--accent); }
+
+    /* ── TYPOGRAPHY ── */
+    .label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── BUTTONS ── */
+    .btn-primary {
+      background: var(--accent); color: #000;
+      border: none; border-radius: 8px;
+      padding: 15px 24px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 16px; font-weight: 900;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      cursor: pointer; width: 100%;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-primary:active { opacity: 0.85; transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: none; border: none;
+      color: var(--accent);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; padding: 6px 0;
+    }
+
+    /* ── INPUTS ── */
+    input[type="text"],
+    input[type="number"],
+    input[type="password"] {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 14px; padding: 11px 12px;
+      width: 100%; outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    /* ── DIVIDER ── */
+    .divider { height: 1px; background: var(--border); }
+
+    /* ================================================================
+       HOME VIEW
+    ================================================================ */
+    .home-header {
+      padding: 56px 20px 20px;
+    }
+    .home-eyebrow {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .home-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 58px; font-weight: 900;
+      letter-spacing: -0.02em; line-height: 1;
+      color: var(--accent);
+      margin: 2px 0 4px;
+    }
+    .home-sub {
+      font-size: 11px; color: var(--muted);
+      font-style: italic;
+    }
+
+    /* Today Card */
+    .today-card {
+      margin: 0 16px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.1s;
+      position: relative; overflow: hidden;
+    }
+    .today-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .today-card.workout-logged::before { opacity: 1; }
+    .today-card.rest-logged::before { background: var(--rest-color); opacity: 1; }
+    .today-card.missed-logged::before { background: var(--missed-color); opacity: 1; }
+    .today-card:active { transform: scale(0.99); }
+
+    .today-tag {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .today-status-text {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 30px; font-weight: 900;
+      text-transform: uppercase; line-height: 1;
+    }
+    .today-status-text.empty { color: var(--muted-light); }
+    .today-status-text.workout { color: var(--accent); }
+    .today-status-text.rest { color: var(--rest-color); }
+    .today-status-text.missed { color: var(--missed-color); }
+
+    .today-tap-hint {
+      font-size: 11px; color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .today-muscles {
+      display: flex; gap: 6px;
+      flex-wrap: wrap; margin-top: 10px;
+    }
+    .muscle-chip {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      border-radius: 4px; padding: 4px 8px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--accent);
+    }
+    .today-steps-hint {
+      font-size: 11px; color: var(--muted-light);
+      margin-top: 8px;
+    }
+
+    /* Week Strip */
+    .week-section { margin: 0 16px 14px; }
+    .section-head {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .week-strip {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .week-day {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 5px;
+    }
+    .week-day-lbl {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .week-dot {
+      width: 100%; aspect-ratio: 1;
+      border-radius: 8px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      display: flex; align-items: center;
+      justify-content: center;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 11px; font-weight: 700;
+      color: transparent;
+    }
+    .week-dot.workout { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+    .week-dot.rest { background: var(--rest-dim); border-color: rgba(68,136,255,0.3); color: var(--rest-color); }
+    .week-dot.missed { background: var(--missed-dim); border-color: rgba(255,68,85,0.3); color: var(--missed-color); }
+    .week-dot.is-today { border-color: var(--accent) !important; box-shadow: 0 0 0 1px var(--accent); }
+
+    /* Stats Row */
+    .stats-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px; margin: 0 16px 14px;
+    }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px;
+    }
+    .stat-value {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 40px; font-weight: 900;
+      color: var(--accent); line-height: 1;
+    }
+    .stat-label { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+    /* Quick Actions */
+    .quick-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px; margin: 0 16px 14px;
+    }
+    .quick-btn {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 12px;
+      cursor: pointer; text-align: left;
+      transition: border-color 0.2s, background 0.2s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .quick-btn-icon { font-size: 18px; }
+    .quick-btn-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--muted-light);
+    }
+    .quick-btn.rest:hover { border-color: var(--rest-color); }
+    .quick-btn.rest:hover .quick-btn-label { color: var(--rest-color); }
+    .quick-btn.missed:hover { border-color: var(--missed-color); }
+    .quick-btn.missed:hover .quick-btn-label { color: var(--missed-color); }
+    .quick-btn:active { transform: scale(0.97); }
+
+    /* ================================================================
+       LOG SHEET (overlay)
+    ================================================================ */
+    .log-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200; display: none;
+      align-items: flex-end;
+      backdrop-filter: blur(2px);
+    }
+    .log-overlay.open { display: flex; }
+
+    .log-sheet {
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      width: 100%; max-width: 430px;
+      margin: 0 auto;
+      max-height: 93vh; overflow-y: auto;
+      padding-bottom: calc(24px + var(--safe-bottom));
+      animation: sheetUp 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes sheetUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .sheet-handle {
+      width: 36px; height: 4px;
+      background: var(--border); border-radius: 2px;
+      margin: 12px auto 0;
+    }
+    .sheet-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sheet-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 20px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .sheet-close {
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      font-size: 20px; padding: 4px; line-height: 1;
+    }
+
+    /* Day Type */
+    .type-selector {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px; padding: 16px 20px;
+    }
+    .type-btn {
+      border: 1px solid var(--border);
+      background: var(--card); border-radius: 10px;
+      padding: 14px 8px; cursor: pointer;
+      text-align: center; transition: all 0.15s;
+    }
+    .type-btn .type-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+    .type-btn .type-lbl {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .type-btn.sel-workout { border-color: var(--accent); background: var(--accent-dim); }
+    .type-btn.sel-workout .type-lbl { color: var(--accent); }
+    .type-btn.sel-rest { border-color: var(--rest-color); background: var(--rest-dim); }
+    .type-btn.sel-rest .type-lbl { color: var(--rest-color); }
+    .type-btn.sel-missed { border-color: var(--missed-color); background: var(--missed-dim); }
+    .type-btn.sel-missed .type-lbl { color: var(--missed-color); }
+
+    /* Steps */
+    .steps-block { padding: 0 20px 16px; }
+    .steps-row {
+      display: flex; align-items: center;
+      gap: 10px; margin-top: 8px;
+    }
+    .steps-unit {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--muted); white-space: nowrap;
+    }
+
+    /* Muscle Picker */
+    .muscle-block { padding: 16px 20px; }
+    .muscle-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 8px; margin-top: 10px;
+    }
+    .muscle-pick-btn {
+      border: 1px solid var(--border);
+      background: var(--card); border-radius: 8px;
+      padding: 13px 12px; cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 15px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--muted); transition: all 0.15s;
+    }
+    .muscle-pick-btn.selected {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+    .m-check {
+      width: 18px; height: 18px; border-radius: 4px;
+      border: 1px solid var(--border);
+      flex-shrink: 0; display: flex;
+      align-items: center; justify-content: center;
+      font-size: 10px; transition: all 0.15s;
+    }
+    .muscle-pick-btn.selected .m-check {
+      background: var(--accent); border-color: var(--accent); color: #000;
+    }
+    .muscle-count-hint {
+      font-size: 11px; color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* Exercise Builder */
+    .exercises-block { padding: 16px 20px; }
+    .muscle-ex-block {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .muscle-ex-head {
+      background: var(--accent-dim);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 15px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--accent);
+    }
+    .ex-item { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    .ex-item:last-child { border-bottom: none; }
+    .ex-name-row {
+      display: flex; align-items: center;
+      gap: 8px; margin-bottom: 10px;
+    }
+    .ex-num {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); white-space: nowrap;
+    }
+    .ex-del {
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      font-size: 14px; padding: 0; margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    /* Sets table */
+    .sets-cols {
+      display: grid;
+      grid-template-columns: 28px 1fr 1fr 28px;
+      gap: 6px; margin-bottom: 5px;
+    }
+    .sets-col-lbl {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); text-align: center;
+    }
+    .set-row {
+      display: grid;
+      grid-template-columns: 28px 1fr 1fr 28px;
+      gap: 6px; align-items: center; margin-bottom: 5px;
+    }
+    .set-num {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px; font-weight: 700;
+      color: var(--muted); text-align: center;
+    }
+    input.si {
+      padding: 8px 6px; text-align: center;
+      font-size: 13px;
+    }
+    .set-del-btn {
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      font-size: 12px; text-align: center;
+      padding: 0;
+    }
+
+    .add-set-btn, .add-ex-btn {
+      background: none;
+      border: 1px dashed var(--border);
+      border-radius: 6px; cursor: pointer;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); padding: 8px;
+      width: 100%; margin-top: 6px;
+      transition: all 0.15s;
+    }
+    .add-set-btn:hover, .add-ex-btn:hover {
+      border-color: var(--accent); color: var(--accent);
+    }
+    .add-ex-btn {
+      margin: 10px 14px;
+      width: calc(100% - 28px);
+    }
+
+    .save-block { padding: 16px 20px 0; }
+
+    /* ================================================================
+       HISTORY VIEW
+    ================================================================ */
+    .view-header {
+      padding: 56px 20px 20px;
+    }
+    .view-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 36px; font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .history-list { padding: 0 16px 16px; }
+    .history-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px;
+      margin-bottom: 8px;
+    }
+    .history-row {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 8px;
+    }
+    .history-date {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 16px; font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .badge-workout { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
+    .badge-rest { background: var(--rest-dim); color: var(--rest-color); border: 1px solid rgba(68,136,255,0.25); }
+    .badge-missed { background: var(--missed-dim); color: var(--missed-color); border: 1px solid rgba(255,68,85,0.25); }
+
+    .history-muscles { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px; }
+    .history-meta { font-size: 11px; color: var(--muted); }
+
+    /* ================================================================
+       AI ANALYSIS VIEW
+    ================================================================ */
+    .analysis-wrap { padding: 0 16px 16px; }
+
+    .ai-hero {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px 20px;
+      text-align: center; margin-bottom: 14px;
+    }
+    .ai-icon { font-size: 44px; margin-bottom: 14px; display: block; }
+    .ai-hero h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 26px; font-weight: 900;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .ai-hero p { font-size: 12px; color: var(--muted-light); line-height: 1.7; }
+
+    /* API Key Config */
+    .api-config {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px;
+      margin-bottom: 14px;
+    }
+    .api-config-head {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 14px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .api-config p { font-size: 11px; color: var(--muted-light); margin-bottom: 10px; line-height: 1.6; }
+    .api-key-row { display: flex; gap: 8px; }
+    .api-key-row input { flex: 1; }
+    .api-key-row button {
+      background: var(--accent); color: #000;
+      border: none; border-radius: 8px;
+      padding: 11px 16px; cursor: pointer;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px; font-weight: 800;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .api-status {
+      font-size: 10px; margin-top: 6px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .api-status.ok { color: var(--accent); }
+    .api-status.none { color: var(--muted); }
+
+    /* Analysis output */
+    .analysis-result-card {
+      background: var(--card);
+      border: 1px solid rgba(204,255,0,0.2);
+      border-radius: 12px; padding: 20px;
+    }
+    .analysis-result-card h3 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 18px; font-weight: 800;
+      text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .analysis-text {
+      font-size: 13px; line-height: 1.85;
+      color: #CCCCCC;
+    }
+
+    /* Loading */
+    .loading-state {
+      text-align: center; padding: 48px 20px;
+      color: var(--muted); font-size: 12px;
+    }
+    .dots {
+      display: inline-flex; gap: 6px; margin-top: 14px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      background: var(--accent); border-radius: 50%;
+      animation: blink 1.3s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink {
+      0%, 100% { opacity: 0.15; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Empty */
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 14px; display: block; }
+    .empty-state h3 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 22px; font-weight: 800;
+      text-transform: uppercase;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .empty-state p { font-size: 12px; line-height: 1.7; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 96px;
+      left: 50%; transform: translateX(-50%);
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 20px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      z-index: 999; white-space: nowrap;
+      animation: toastIn 0.3s ease, toastOut 0.3s ease 2.2s forwards;
+    }
+    .toast.ok { border-color: var(--accent); color: var(--accent); }
+    .toast.err { border-color: var(--missed-color); color: var(--missed-color); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    @keyframes toastOut { to { opacity: 0; } }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ════════════════════════════════════════
+       HOME VIEW
+  ════════════════════════════════════════ -->
+  <div class="view active" id="view-home">
+    <div class="home-header">
+      <div class="home-eyebrow" id="home-date">Monday, 1 Jan</div>
+      <div class="home-title">FORGE</div>
+      <div class="home-sub">your iron diary.</div>
+    </div>
+
+    <!-- Today Card -->
+    <div class="today-card" id="today-card" onclick="openLog()">
+      <div class="today-tag">Today</div>
+      <div class="today-status-text empty" id="today-status-text">Tap to log →</div>
+      <div class="today-tap-hint" id="today-tap-hint">Nothing logged yet</div>
+      <div class="today-muscles" id="today-muscles"></div>
+      <div class="today-steps-hint" id="today-steps-hint"></div>
+    </div>
+
+    <!-- Week Strip -->
+    <div class="week-section">
+      <div class="section-head">
+        <span class="label">This Week</span>
+      </div>
+      <div class="week-strip" id="week-strip"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-streak">—</div>
+        <div class="stat-label">day streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-week-w">—</div>
+        <div class="stat-label">workouts this week</div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-row">
+      <button class="quick-btn rest" onclick="quickLog('rest')">
+        <span class="quick-btn-icon">😴</span>
+        <span class="quick-btn-label">Rest Day</span>
+      </button>
+      <button class="quick-btn missed" onclick="quickLog('missed')">
+        <span class="quick-btn-icon">✕</span>
+        <span class="quick-btn-label">Missed</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       HISTORY VIEW
+  ════════════════════════════════════════ -->
+  <div class="view" id="view-history">
+    <div class="view-header">
+      <div class="view-title">History</div>
+    </div>
+    <div class="history-list" id="history-list">
+      <div class="loading-state">Loading<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       AI ANALYSIS VIEW
+  ════════════════════════════════════════ -->
+  <div class="view" id="view-analysis">
+    <div class="view-header">
+      <div class="view-title">AI Coach</div>
+    </div>
+    <div class="analysis-wrap">
+      <div class="ai-hero">
+        <span class="ai-icon">🤖</span>
+        <h2>Your Coach</h2>
+        <p>I'll look at your last 14 days of training — muscle frequency, volume balance, recovery gaps, and progressive overload — and give you honest feedback.</p>
+      </div>
+
+      <!-- API Key Config -->
+      <div class="api-config" id="api-config">
+        <div class="api-config-head">Anthropic API Key</div>
+        <p>Enter your API key from console.anthropic.com. It's stored only on this device.</p>
+        <div class="api-key-row">
+          <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+          <button onclick="saveApiKey()">Save</button>
+        </div>
+        <div class="api-status none" id="api-status">No key saved</div>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <button class="btn-primary" onclick="runAnalysis()" id="analyze-btn">Analyze My Progress</button>
+      </div>
+
+      <div id="analysis-output"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       LOG SHEET (overlay)
+  ════════════════════════════════════════ -->
+  <div class="log-overlay" id="log-overlay">
+    <div class="log-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title" id="sheet-date-title">Log Day</div>
+        <button class="sheet-close" onclick="closeLog()">✕</button>
+      </div>
+
+      <!-- Type selector -->
+      <div class="type-selector">
+        <div class="type-btn" id="type-workout" onclick="selectType('workout')">
+          <span class="type-icon">🏋️</span>
+          <span class="type-lbl">Workout</span>
+        </div>
+        <div class="type-btn" id="type-rest" onclick="selectType('rest')">
+          <span class="type-icon">😴</span>
+          <span class="type-lbl">Rest</span>
+        </div>
+        <div class="type-btn" id="type-missed" onclick="selectType('missed')">
+          <span class="type-icon">✕</span>
+          <span class="type-lbl">Missed</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Steps -->
+      <div class="steps-block">
+        <span class="label">Steps walked today</span>
+        <div class="steps-row">
+          <input type="number" id="steps-input" placeholder="0" min="0" />
+          <span class="steps-unit">steps</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Muscles (workout only) -->
+      <div id="muscle-block" style="display:none;">
+        <div class="muscle-block">
+          <span class="label">Muscles trained <span id="muscle-count"></span></span>
+          <div class="muscle-grid" id="muscle-grid"></div>
+          <div class="muscle-count-hint">Select 2–4 muscles</div>
+        </div>
+        <div class="divider"></div>
+      </div>
+
+      <!-- Exercises (workout only, after muscle selection) -->
+      <div id="exercises-block" style="display:none;">
+        <div class="exercises-block">
+          <span class="label" style="margin-bottom:12px;display:block;">Log your sets</span>
+          <div id="exercise-builder"></div>
+        </div>
+        <div class="divider"></div>
+      </div>
+
+      <!-- Save -->
+      <div class="save-block">
+        <button class="btn-primary" onclick="saveLog()">Save Day</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM SHEET -->
+  <div class="log-overlay" id="confirm-overlay">
+    <div class="log-sheet" style="max-height:auto;">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title" id="confirm-title">Are you sure?</div>
+        <button class="sheet-close" onclick="closeConfirm()">✕</button>
+      </div>
+      <div style="padding:16px 20px;">
+        <p id="confirm-msg" style="font-size:13px;color:#888;line-height:1.7;margin-bottom:16px;"></p>
+        <button class="btn-primary" id="confirm-ok-btn" style="margin-bottom:10px;">Confirm</button>
+        <button class="btn-secondary" onclick="closeConfirm()" style="width:100%;padding:13px;border-radius:8px;font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:none;border:1px solid #272727;color:#888;cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY DETAIL SHEET -->
+  <div class="log-overlay" id="detail-overlay">
+    <div class="log-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-title" id="detail-date-title">Day Detail</div>
+        <button class="sheet-close" onclick="closeDetail()">✕</button>
+      </div>
+      <div id="detail-content" style="padding:16px 20px 0;"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-home" onclick="switchView('home')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      Home
+    </button>
+    <button class="nav-btn" id="nav-history" onclick="switchView('history')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      History
+    </button>
+    <button class="nav-btn" id="nav-analysis" onclick="switchView('analysis')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      AI Coach
+    </button>
+  </nav>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCRIPT
+════════════════════════════════════════ -->
+<script>
+// ── CONSTANTS ──
+const SUPABASE_URL = 'https://zgwwwhpoxbvhnbkwgfmj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpnd3d3aHBveGJ2aG5ia3dnZm1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4ODExNTEsImV4cCI6MjA5MzQ1NzE1MX0._4WvABGlL5GiMNTOPN4JSgg5nS1ed5mQrquhqkIW4kQ';
+
+const MUSCLES = ['Chest', 'Back', 'Bicep', 'Triceps', 'Legs', 'Core', 'Shoulders'];
+
+const EXERCISE_SUGGESTIONS = {
+  Chest:    ['Bench Press', 'Incline Press', 'Cable Fly', 'Dumbbell Fly', 'Dips', 'Push-ups', 'Pec Deck'],
+  Back:     ['Pull-ups', 'Lat Pulldown', 'Seated Row', 'Barbell Row', 'T-Bar Row', 'Face Pulls', 'Deadlift'],
+  Bicep:    ['Barbell Curl', 'Hammer Curl', 'Cable Curl', 'Incline Curl', 'Preacher Curl', 'Concentration Curl'],
+  Triceps:  ['Pushdown', 'Overhead Extension', 'Skull Crushers', 'Close Grip Bench', 'Rope Pushdown', 'Dips'],
+  Legs:     ['Squat', 'Leg Press', 'Romanian Deadlift', 'Lunges', 'Leg Extension', 'Leg Curl', 'Calf Raise'],
+  Core:     ['Cable Crunch', 'Plank', 'Hanging Leg Raise', 'Russian Twist', 'Ab Wheel', 'Crunches'],
+  Shoulders:['Overhead Press', 'Lateral Raise', 'Front Raise', 'Rear Delt Fly', 'Arnold Press', 'Face Pulls'],
+};
+
+// ── SUPABASE ──
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── STATE ──
+const todayStr = new Date().toISOString().split('T')[0];
+
+let state = {
+  todayLog: null,
+  recentLogs: [],
+  // log builder
+  logType: null,
+  selectedMuscles: [],
+  exercises: {}, // muscle → [{ name, sets: [{weight, reps}] }]
+  editingLog: null,   // the log being edited (null = new)
+  editingDate: null,  // date string being edited
+};
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+async function init() {
+  renderHomeDate();
+  buildMuscleGrid();
+  checkApiKey();
+
+  await Promise.all([loadTodayLog(), loadRecentLogs()]);
+  renderTodayCard();
+  renderWeekStrip();
+  renderStats();
+}
+
+function renderHomeDate() {
+  const opts = { weekday: 'long', month: 'long', day: 'numeric' };
+  document.getElementById('home-date').textContent =
+    new Date().toLocaleDateString('en-IN', opts).toUpperCase();
+}
+
+// ════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════
+async function loadTodayLog() {
+  try {
+    const { data } = await sb
+      .from('logs')
+      .select('*, log_muscles(*, exercises(*, sets(*)))')
+      .eq('date', todayStr)
+      .maybeSingle();
+    state.todayLog = data || null;
+  } catch { state.todayLog = null; }
+}
+
+async function loadRecentLogs() {
+  const from = new Date();
+  from.setDate(from.getDate() - 29);
+  const fromStr = from.toISOString().split('T')[0];
+  try {
+    const { data } = await sb
+      .from('logs')
+      .select('*, log_muscles(*, exercises(*, sets(*)))')
+      .gte('date', fromStr)
+      .order('date', { ascending: false });
+    state.recentLogs = data || [];
+  } catch { state.recentLogs = []; }
+}
+
+// ════════════════════════════════════════
+// HOME RENDERING
+// ════════════════════════════════════════
+function renderTodayCard() {
+  const log = state.todayLog;
+  const card = document.getElementById('today-card');
+  const statusEl = document.getElementById('today-status-text');
+  const hintEl = document.getElementById('today-tap-hint');
+  const musclesEl = document.getElementById('today-muscles');
+  const stepsEl = document.getElementById('today-steps-hint');
+
+  card.className = 'today-card';
+  musclesEl.innerHTML = '';
+  stepsEl.textContent = '';
+
+  if (!log) {
+    statusEl.className = 'today-status-text empty';
+    statusEl.textContent = 'Tap to log →';
+    hintEl.textContent = 'Nothing logged yet';
+    return;
+  }
+
+  hintEl.textContent = 'Tap to edit';
+
+  if (log.type === 'workout') {
+    card.classList.add('workout-logged');
+    statusEl.className = 'today-status-text workout';
+    statusEl.textContent = 'Workout Done 💪';
+    (log.log_muscles || []).forEach(lm => {
+      const chip = document.createElement('div');
+      chip.className = 'muscle-chip';
+      chip.textContent = lm.muscle;
+      musclesEl.appendChild(chip);
+    });
+    const totalSets = (log.log_muscles || []).reduce((a, lm) =>
+      a + (lm.exercises || []).reduce((b, ex) => b + (ex.sets || []).length, 0), 0);
+    if (totalSets > 0) stepsEl.textContent = `${totalSets} sets logged`;
+  } else if (log.type === 'rest') {
+    card.classList.add('rest-logged');
+    statusEl.className = 'today-status-text rest';
+    statusEl.textContent = 'Rest Day 😴';
+  } else {
+    card.classList.add('missed-logged');
+    statusEl.className = 'today-status-text missed';
+    statusEl.textContent = 'Day Missed ✕';
+  }
+
+  if (log.steps > 0) {
+    stepsEl.textContent += (stepsEl.textContent ? '  ·  ' : '') +
+      `👣 ${log.steps.toLocaleString('en-IN')} steps`;
+  }
+}
+
+function renderWeekStrip() {
+  const strip = document.getElementById('week-strip');
+  const DAY_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const today = new Date();
+
+  strip.innerHTML = '';
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const log = state.recentLogs.find(l => l.date === dateStr);
+
+    let dotClass = 'week-dot';
+    let dotText = '';
+    if (log) {
+      dotClass += ` ${log.type}`;
+      dotText = log.type === 'workout' ? 'W' : log.type === 'rest' ? 'R' : 'M';
+    }
+    if (i === 0) dotClass += ' is-today';
+
+    strip.innerHTML += `
+      <div class="week-day">
+        <span class="week-day-lbl">${DAY_LABELS[d.getDay()]}</span>
+        <div class="${dotClass}">${dotText}</div>
+      </div>`;
+  }
+}
+
+function renderStats() {
+  // Streak: consecutive workout/rest days going back from yesterday
+  let streak = 0;
+  const today = new Date();
+  for (let i = 1; i <= 60; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const log = state.recentLogs.find(l => l.date === dateStr);
+    if (log && log.type !== 'missed') streak++;
+    else break;
+  }
+  // If today is also logged (workout/rest), add 1
+  if (state.todayLog && state.todayLog.type !== 'missed') streak++;
+
+  // Workouts this week (Mon–Sun)
+  const dayOfWeek = today.getDay(); // 0=Sun
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+  const startStr = startOfWeek.toISOString().split('T')[0];
+  const weekWorkouts = state.recentLogs.filter(l =>
+    l.type === 'workout' && l.date >= startStr).length;
+
+  document.getElementById('stat-streak').textContent = streak;
+  document.getElementById('stat-week-w').textContent = weekWorkouts;
+}
+
+// ════════════════════════════════════════
+// QUICK LOG (Rest / Missed from home)
+// ════════════════════════════════════════
+async function quickLog(type) {
+  // If today already has a log, confirm before overwriting
+  if (state.todayLog) {
+    const existing = state.todayLog.type;
+    const label = type === 'rest' ? 'Rest Day 😴' : 'Missed Day ✕';
+    const existingLabel = existing === 'workout' ? 'a Workout 💪' : existing === 'rest' ? 'Rest Day 😴' : 'Missed Day';
+    showConfirm(
+      `Replace today's log?`,
+      `You already logged ${existingLabel} today. This will replace it with ${label}. Your workout data will be lost.`,
+      async () => { await doQuickLog(type); }
+    );
+    return;
+  }
+  await doQuickLog(type);
+}
+
+async function doQuickLog(type) {
+  try {
+    if (state.todayLog) {
+      // Delete muscles first if replacing a workout
+      if (state.todayLog.type === 'workout') {
+        await sb.from('log_muscles').delete().eq('log_id', state.todayLog.id);
+      }
+      await sb.from('logs').update({ type, steps: state.todayLog.steps || 0 }).eq('id', state.todayLog.id);
+    } else {
+      await sb.from('logs').insert({ date: todayStr, type, steps: 0 });
+    }
+    await loadTodayLog();
+    await loadRecentLogs();
+    renderTodayCard();
+    renderWeekStrip();
+    renderStats();
+    showToast(type === 'rest' ? 'Rest day logged 😴' : 'Missed day logged', type === 'rest' ? 'ok' : 'err');
+  } catch (e) {
+    showToast('Error saving. Try again.', 'err');
+  }
+}
+
+// ── CONFIRM SHEET ──
+function showConfirm(title, msg, onOk) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  const okBtn = document.getElementById('confirm-ok-btn');
+  okBtn.onclick = () => { closeConfirm(); onOk(); };
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+}
+
+// ════════════════════════════════════════
+// LOG SHEET
+// ════════════════════════════════════════
+function openLog(logOverride) {
+  // logOverride = a specific log to edit; null = today's log
+  const log = logOverride || state.todayLog;
+  state.editingLog = log || null;
+  state.editingDate = log ? log.date : todayStr;
+
+  document.getElementById('log-overlay').classList.add('open');
+
+  const d = new Date(state.editingDate + 'T00:00:00');
+  document.getElementById('sheet-date-title').textContent =
+    d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+
+  // Reset
+  state.logType = null;
+  state.selectedMuscles = [];
+  state.exercises = {};
+  document.getElementById('steps-input').value = '';
+  ['workout','rest','missed'].forEach(t =>
+    document.getElementById(`type-${t}`).className = 'type-btn');
+  document.getElementById('muscle-block').style.display = 'none';
+  document.getElementById('exercises-block').style.display = 'none';
+
+  // Reset muscle grid
+  MUSCLES.forEach(m => {
+    const btn = document.querySelector(`[data-muscle="${m}"]`);
+    if (btn) btn.className = 'muscle-pick-btn';
+    const chk = document.querySelector(`[data-check="${m}"]`);
+    if (chk) chk.textContent = '';
+  });
+  document.getElementById('muscle-count').textContent = '';
+
+  // Prefill if a log exists
+  if (log) {
+    selectType(log.type);
+    document.getElementById('steps-input').value = log.steps > 0 ? log.steps : '';
+
+    if (log.type === 'workout' && log.log_muscles) {
+      log.log_muscles.forEach(lm => {
+        state.selectedMuscles.push(lm.muscle);
+        const btn = document.querySelector(`[data-muscle="${lm.muscle}"]`);
+        const chk = document.querySelector(`[data-check="${lm.muscle}"]`);
+        if (btn) btn.className = 'muscle-pick-btn selected';
+        if (chk) chk.textContent = '✓';
+
+        state.exercises[lm.muscle] = (lm.exercises || []).map(ex => ({
+          name: ex.name,
+          sets: (ex.sets || [{ weight: '', reps: '' }]).map(s => ({
+            weight: s.weight_kg != null ? s.weight_kg : '',
+            reps: s.reps || ''
+          }))
+        }));
+        if (!state.exercises[lm.muscle].length) {
+          state.exercises[lm.muscle] = [{ name: '', sets: [{ weight: '', reps: '' }] }];
+        }
+      });
+      updateMuscleCount();
+      if (state.selectedMuscles.length > 0) {
+        document.getElementById('exercises-block').style.display = 'block';
+        renderExercises();
+      }
+    }
+  }
+}
+
+function closeLog() {
+  document.getElementById('log-overlay').classList.remove('open');
+}
+
+function selectType(type) {
+  state.logType = type;
+  ['workout','rest','missed'].forEach(t => {
+    document.getElementById(`type-${t}`).className =
+      t === type ? `type-btn sel-${t}` : 'type-btn';
+  });
+  document.getElementById('muscle-block').style.display = type === 'workout' ? 'block' : 'none';
+  if (type !== 'workout') {
+    document.getElementById('exercises-block').style.display = 'none';
+  } else if (state.selectedMuscles.length > 0) {
+    document.getElementById('exercises-block').style.display = 'block';
+  }
+}
+
+// ── MUSCLE GRID ──
+function buildMuscleGrid() {
+  const grid = document.getElementById('muscle-grid');
+  grid.innerHTML = MUSCLES.map(m => `
+    <button class="muscle-pick-btn" data-muscle="${m}" onclick="toggleMuscle('${m}')">
+      <div class="m-check" data-check="${m}"></div>
+      ${m}
+    </button>
+  `).join('');
+}
+
+function toggleMuscle(muscle) {
+  const idx = state.selectedMuscles.indexOf(muscle);
+  const btn = document.querySelector(`[data-muscle="${muscle}"]`);
+  const chk = document.querySelector(`[data-check="${muscle}"]`);
+
+  if (idx > -1) {
+    state.selectedMuscles.splice(idx, 1);
+    btn.className = 'muscle-pick-btn';
+    chk.textContent = '';
+    delete state.exercises[muscle];
+  } else {
+    if (state.selectedMuscles.length >= 4) {
+      showToast('Max 4 muscles per session', 'err'); return;
+    }
+    state.selectedMuscles.push(muscle);
+    btn.className = 'muscle-pick-btn selected';
+    chk.textContent = '✓';
+    state.exercises[muscle] = [{ name: '', sets: [{ weight: '', reps: '' }] }];
+  }
+
+  updateMuscleCount();
+  const hasM = state.selectedMuscles.length > 0;
+  document.getElementById('exercises-block').style.display = hasM ? 'block' : 'none';
+  if (hasM) renderExercises();
+}
+
+function updateMuscleCount() {
+  const n = state.selectedMuscles.length;
+  document.getElementById('muscle-count').textContent = n > 0 ? `(${n})` : '';
+}
+
+// ── EXERCISE BUILDER ──
+function renderExercises() {
+  const builder = document.getElementById('exercise-builder');
+  builder.innerHTML = state.selectedMuscles.map(muscle => {
+    const exs = state.exercises[muscle] || [];
+    return `
+      <div class="muscle-ex-block">
+        <div class="muscle-ex-head">${muscle}</div>
+        ${exs.map((ex, ei) => renderExItem(muscle, ei, ex)).join('')}
+        <button class="add-ex-btn" onclick="addExercise('${muscle}')">+ Add Exercise</button>
+      </div>`;
+  }).join('');
+}
+
+function renderExItem(muscle, ei, ex) {
+  const sugg = EXERCISE_SUGGESTIONS[muscle] || [];
+  const suggHtml = sugg.length ? `
+    <datalist id="sugg-${muscle}-${ei}">
+      ${sugg.map(s => `<option value="${s}">`).join('')}
+    </datalist>` : '';
+
+  const sets = ex.sets || [{ weight: '', reps: '' }];
+  return `
+    <div class="ex-item">
+      <div class="ex-name-row">
+        <span class="ex-num">Ex ${ei + 1}</span>
+        <input type="text"
+          list="sugg-${muscle}-${ei}"
+          placeholder="Exercise name…"
+          value="${escHtml(ex.name || '')}"
+          oninput="updExName('${muscle}', ${ei}, this.value)"
+          style="flex:1;" />
+        ${ei > 0 ? `<button class="ex-del" onclick="delExercise('${muscle}', ${ei})">🗑</button>` : ''}
+      </div>
+      ${suggHtml}
+      <div class="sets-cols">
+        <div class="sets-col-lbl">Set</div>
+        <div class="sets-col-lbl">KG</div>
+        <div class="sets-col-lbl">Reps</div>
+        <div></div>
+      </div>
+      ${sets.map((s, si) => `
+        <div class="set-row">
+          <div class="set-num">${si + 1}</div>
+          <input class="si" type="number" placeholder="0" min="0" step="0.5"
+            value="${s.weight !== '' ? s.weight : ''}"
+            oninput="updSet('${muscle}', ${ei}, ${si}, 'weight', this.value)" />
+          <input class="si" type="number" placeholder="0" min="0"
+            value="${s.reps !== '' ? s.reps : ''}"
+            oninput="updSet('${muscle}', ${ei}, ${si}, 'reps', this.value)" />
+          ${si > 0
+            ? `<button class="set-del-btn" onclick="delSet('${muscle}', ${ei}, ${si})">✕</button>`
+            : '<div></div>'}
+        </div>`).join('')}
+      <button class="add-set-btn" onclick="addSet('${muscle}', ${ei})">+ Add Set</button>
+    </div>`;
+}
+
+function addExercise(muscle) {
+  if (!state.exercises[muscle]) state.exercises[muscle] = [];
+  state.exercises[muscle].push({ name: '', sets: [{ weight: '', reps: '' }] });
+  renderExercises();
+}
+function delExercise(muscle, ei) {
+  state.exercises[muscle].splice(ei, 1);
+  renderExercises();
+}
+function updExName(muscle, ei, val) {
+  if (state.exercises[muscle]?.[ei]) state.exercises[muscle][ei].name = val;
+}
+function addSet(muscle, ei) {
+  state.exercises[muscle][ei].sets.push({ weight: '', reps: '' });
+  renderExercises();
+}
+function delSet(muscle, ei, si) {
+  state.exercises[muscle][ei].sets.splice(si, 1);
+  renderExercises();
+}
+function updSet(muscle, ei, si, field, val) {
+  if (state.exercises[muscle]?.[ei]?.sets?.[si]) {
+    state.exercises[muscle][ei].sets[si][field] = val;
+  }
+}
+
+// ── SAVE ──
+async function saveLog() {
+  if (!state.logType) { showToast('Pick a day type first', 'err'); return; }
+
+  const steps = parseInt(document.getElementById('steps-input').value) || 0;
+  const btn = document.querySelector('.save-block .btn-primary');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const dbErr = (label, error) => { throw new Error(label + ': ' + (error.message || JSON.stringify(error))); };
+
+  try {
+    let logId;
+    const editingLog = state.editingLog;
+    const editingDate = state.editingDate || todayStr;
+
+    if (editingLog) {
+      const { data, error } = await sb.from('logs')
+        .update({ type: state.logType, steps })
+        .eq('id', editingLog.id).select().single();
+      if (error) dbErr('update log', error);
+      logId = data.id;
+      const { error: delErr } = await sb.from('log_muscles').delete().eq('log_id', logId);
+      if (delErr) dbErr('delete muscles', delErr);
+    } else {
+      const { data, error } = await sb.from('logs')
+        .insert({ date: editingDate, type: state.logType, steps })
+        .select().single();
+      if (error) dbErr('insert log', error);
+      logId = data.id;
+    }
+
+    if (state.logType === 'workout') {
+      for (const muscle of state.selectedMuscles) {
+        const { data: lm, error: lmErr } = await sb.from('log_muscles')
+          .insert({ log_id: logId, muscle }).select().single();
+        if (lmErr) dbErr('insert muscle ' + muscle, lmErr);
+
+        const exs = state.exercises[muscle] || [];
+        for (let ei = 0; ei < exs.length; ei++) {
+          const ex = exs[ei];
+          if (!ex.name?.trim()) continue;
+          const { data: exRow, error: exErr } = await sb.from('exercises')
+            .insert({ log_muscle_id: lm.id, name: ex.name.trim(), order_index: ei })
+            .select().single();
+          if (exErr) dbErr('insert exercise', exErr);
+
+          for (let si = 0; si < ex.sets.length; si++) {
+            const s = ex.sets[si];
+            if (!s.reps) continue;
+            const { error: setErr } = await sb.from('sets').insert({
+              exercise_id: exRow.id,
+              set_number: si + 1,
+              weight_kg: parseFloat(s.weight) || 0,
+              reps: parseInt(s.reps) || 0,
+            });
+            if (setErr) dbErr('insert set', setErr);
+          }
+        }
+      }
+    }
+
+    closeLog();
+    showToast('Day saved! 💪', 'ok');
+    await loadTodayLog();
+    await loadRecentLogs();
+    renderTodayCard();
+    renderWeekStrip();
+    renderStats();
+  } catch (err) {
+    console.error('FORGE save error:', err);
+    // Show the actual error message on the button for 6 seconds
+    btn.style.cssText = 'background:#FF4455;color:#fff;font-size:12px;';
+    btn.textContent = err.message?.slice(0, 55) || 'Unknown error';
+    setTimeout(() => {
+      btn.style.cssText = '';
+      btn.textContent = 'Save Day';
+      btn.disabled = false;
+    }, 6000);
+    return;
+  }
+  btn.disabled = false; btn.textContent = 'Save Day';
+}
+
+// ════════════════════════════════════════
+// HISTORY VIEW
+// ════════════════════════════════════════
+function renderHistory() {
+  const container = document.getElementById('history-list');
+  if (!state.recentLogs.length) {
+    container.innerHTML = `<div class="empty-state">
+      <span class="empty-icon">📋</span>
+      <h3>No Logs Yet</h3>
+      <p>Start logging your workouts to see your history here.</p>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = state.recentLogs.map((log, idx) => {
+    const d = new Date(log.date + 'T00:00:00');
+    const dateStr = d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+    const muscles = (log.log_muscles || []).map(lm => lm.muscle);
+    const totalSets = (log.log_muscles || []).reduce((a, lm) =>
+      a + (lm.exercises || []).reduce((b, ex) => b + (ex.sets || []).length, 0), 0);
+    const totalExercises = (log.log_muscles || []).reduce((a, lm) =>
+      a + (lm.exercises || []).length, 0);
+
+    const meta = [
+      totalExercises > 0 ? `${totalExercises} exercises` : '',
+      totalSets > 0 ? `${totalSets} sets` : '',
+      log.steps > 0 ? `👣 ${log.steps.toLocaleString('en-IN')}` : '',
+    ].filter(Boolean).join('  ·  ');
+
+    return `<div class="history-item" onclick="openDetail(${idx})" style="cursor:pointer;">
+      <div class="history-row">
+        <span class="history-date">${dateStr}</span>
+        <span class="badge badge-${log.type}">${log.type}</span>
+      </div>
+      ${muscles.length ? `<div class="history-muscles">
+        ${muscles.map(m => `<div class="muscle-chip">${m}</div>`).join('')}
+      </div>` : ''}
+      ${meta ? `<div class="history-meta" style="margin-top:6px;">${meta}  <span style="color:#5A5A5A;float:right;font-size:10px;">tap for details →</span></div>` : '<div class="history-meta" style="margin-top:4px;"><span style="color:#5A5A5A;font-size:10px;">tap for details →</span></div>'}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+// HISTORY DETAIL SHEET
+// ════════════════════════════════════════
+function openDetail(idx) {
+  const log = state.recentLogs[idx];
+  if (!log) return;
+
+  const d = new Date(log.date + 'T00:00:00');
+  const dateStr = d.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
+  document.getElementById('detail-date-title').textContent = dateStr;
+
+  let html = '';
+
+  if (log.type !== 'workout') {
+    const icon = log.type === 'rest' ? '😴' : '✕';
+    const label = log.type === 'rest' ? 'Rest Day' : 'Missed Day';
+    html += `<div style="text-align:center;padding:32px 0;">
+      <div style="font-size:48px;margin-bottom:12px;">${icon}</div>
+      <div style="font-family:Barlow Condensed,sans-serif;font-size:24px;font-weight:900;text-transform:uppercase;color:${log.type==='rest'?'var(--rest-color)':'var(--missed-color)'};">${label}</div>
+    </div>`;
+  } else {
+    // Workout detail
+    const muscles = log.log_muscles || [];
+    muscles.forEach(lm => {
+      const exs = lm.exercises || [];
+      html += `<div style="margin-bottom:16px;">
+        <div style="font-family:Barlow Condensed,sans-serif;font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:8px;padding:8px 12px;margin-bottom:8px;">${lm.muscle}</div>`;
+
+      if (exs.length === 0) {
+        html += `<div style="font-size:12px;color:var(--muted);padding:0 4px;">No exercises logged</div>`;
+      } else {
+        exs.forEach((ex, ei) => {
+          const sets = ex.sets || [];
+          html += `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">
+            <div style="font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">${ei+1}. ${ex.name}</div>
+            <div style="display:grid;grid-template-columns:32px 1fr 1fr;gap:6px;margin-bottom:6px;">
+              <div style="font-family:Barlow Condensed,sans-serif;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center;">SET</div>
+              <div style="font-family:Barlow Condensed,sans-serif;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center;">KG</div>
+              <div style="font-family:Barlow Condensed,sans-serif;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center;">REPS</div>
+            </div>`;
+          sets.forEach((s, si) => {
+            html += `<div style="display:grid;grid-template-columns:32px 1fr 1fr;gap:6px;margin-bottom:4px;align-items:center;">
+              <div style="font-family:Barlow Condensed,sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-align:center;">${si+1}</div>
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center;font-size:13px;">${s.weight_kg > 0 ? s.weight_kg : '—'}</div>
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center;font-size:13px;">${s.reps}</div>
+            </div>`;
+          });
+          if (sets.length === 0) html += `<div style="font-size:12px;color:var(--muted);">No sets logged</div>`;
+          html += `</div>`;
+        });
+      }
+      html += `</div>`;
+    });
+  }
+
+  // Steps
+  if (log.steps > 0) {
+    html += `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;">👣</span>
+      <div>
+        <div style="font-family:Barlow Condensed,sans-serif;font-size:22px;font-weight:900;color:var(--accent);">${log.steps.toLocaleString('en-IN')}</div>
+        <div style="font-size:10px;color:var(--muted);">steps walked</div>
+      </div>
+    </div>`;
+  }
+
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;padding-bottom:8px;">
+    <button onclick="editFromDetail(${idx})" style="background:var(--accent);color:#000;border:none;border-radius:8px;padding:14px;font-family:Barlow Condensed,sans-serif;font-size:15px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Edit</button>
+    <button onclick="deleteFromDetail(${idx})" style="background:none;border:1px solid var(--missed-color);border-radius:8px;padding:14px;font-family:Barlow Condensed,sans-serif;font-size:15px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--missed-color);cursor:pointer;">Delete</button>
+  </div>
+  <div style="height:8px;"></div>`;
+
+  document.getElementById('detail-content').innerHTML = html;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open');
+}
+
+function editFromDetail(idx) {
+  const log = state.recentLogs[idx];
+  if (!log) return;
+  closeDetail();
+  openLog(log);
+}
+
+function deleteFromDetail(idx) {
+  const log = state.recentLogs[idx];
+  if (!log) return;
+  const d = new Date(log.date + 'T00:00:00');
+  const dateStr = d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+  showConfirm(
+    'Delete this log?',
+    `This will permanently delete the log for ${dateStr}. This cannot be undone.`,
+    async () => {
+      try {
+        if (log.type === 'workout') {
+          await sb.from('log_muscles').delete().eq('log_id', log.id);
+        }
+        const { error } = await sb.from('logs').delete().eq('id', log.id);
+        if (error) throw error;
+        closeDetail();
+        await loadTodayLog();
+        await loadRecentLogs();
+        renderTodayCard();
+        renderWeekStrip();
+        renderStats();
+        renderHistory();
+        showToast('Log deleted', 'err');
+      } catch (e) {
+        showToast('Delete failed: ' + (e.message || ''), 'err');
+      }
+    }
+  );
+}
+
+// ════════════════════════════════════════
+// AI ANALYSIS
+// ════════════════════════════════════════
+function checkApiKey() {
+  const key = localStorage.getItem('forge_api_key');
+  const statusEl = document.getElementById('api-status');
+  if (key) {
+    statusEl.className = 'api-status ok';
+    statusEl.textContent = '✓ Key saved';
+    document.getElementById('api-key-input').value = '••••••••••••••••';
+  } else {
+    statusEl.className = 'api-status none';
+    statusEl.textContent = 'No key saved';
+  }
+}
+
+function saveApiKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val || val.startsWith('•')) return;
+  localStorage.setItem('forge_api_key', val);
+  checkApiKey();
+  showToast('API key saved', 'ok');
+}
+
+async function runAnalysis() {
+  const apiKey = localStorage.getItem('forge_api_key');
+  if (!apiKey) {
+    showToast('Enter your API key first', 'err'); return;
+  }
+  if (!state.recentLogs.length) {
+    showToast('No data to analyze yet', 'err'); return;
+  }
+
+  const output = document.getElementById('analysis-output');
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true; btn.textContent = 'Analyzing…';
+
+  output.innerHTML = `<div class="loading-state">
+    Your coach is reviewing your sessions…
+    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  </div>`;
+
+  // Build the summary for AI
+  const last14 = state.recentLogs.slice(0, 14);
+  const lines = last14.map(log => {
+    if (log.type !== 'workout') return `${log.date} — ${log.type}${log.steps > 0 ? ` — ${log.steps} steps` : ''}`;
+    const muscleSummary = (log.log_muscles || []).map(lm => {
+      const exStr = (lm.exercises || []).map(ex => {
+        const setsStr = (ex.sets || []).map(s => `${s.weight_kg}kg×${s.reps}`).join(', ');
+        return `${ex.name} [${setsStr}]`;
+      }).join('; ');
+      return `${lm.muscle}: ${exStr || 'no exercises'}`;
+    }).join(' | ');
+    return `${log.date} — workout${log.steps > 0 ? ` — ${log.steps} steps` : ''} — ${muscleSummary}`;
+  }).join('\n');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are an experienced personal trainer and exercise scientist. You analyze workout logs and give direct, specific, actionable coaching feedback. Be honest — don't flatter, don't sugarcoat. The user aims to train each muscle 2x per week, do cardio daily or 3x/week, and abs 2-3x/week. Format your response as plain text with clear sections using ALL CAPS section headers like "MUSCLE FREQUENCY:", "VOLUME BALANCE:", etc. No markdown, no bullet symbols.`,
+        messages: [{
+          role: 'user',
+          content: `Here are my last ${last14.length} days of training:\n\n${lines}\n\nAnalyze:\n1. MUSCLE FREQUENCY: Am I hitting each muscle 2x/week?\n2. VOLUME BALANCE: Any muscles over or under trained?\n3. RECOVERY: Are rest days placed well?\n4. WHAT'S WORKING: 2-3 genuine positives\n5. FIX THIS: 2-3 specific changes I should make\n\nBe direct and specific. If data is sparse, say so and give advice based on what's there.`
+        }],
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content?.[0]?.text || 'No response received.';
+
+    output.innerHTML = `<div class="analysis-result-card">
+      <h3>Your Coaching Report</h3>
+      <div class="analysis-text">${text.replace(/\n/g, '<br>')}</div>
+    </div>`;
+  } catch (err) {
+    console.error(err);
+    output.innerHTML = `<div class="analysis-result-card">
+      <h3>Error</h3>
+      <div class="analysis-text">Could not connect to AI. Check your API key and internet connection.</div>
+    </div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Analyze My Progress';
+  }
+}
+
+// ════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+  const navBtn = document.getElementById(`nav-${view}`);
+  if (navBtn) navBtn.classList.add('active');
+  if (view === 'history') renderHistory();
+}
+
+// ════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════
+function showToast(msg, type = 'ok') {
+  document.querySelector('.toast')?.remove();
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2700);
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  // Unregister any old SW then register fresh
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
+  });
+}
+
+// ── BOOT ──
+init();
+</script>
+</body>
+</html>
