@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0A0A0A" rx="100"/>
+  <!-- Dumbbell icon -->
+  <g fill="#CCFF00">
+    <!-- Left weight plate 1 -->
+    <rect x="48" y="196" width="52" height="120" rx="12"/>
+    <!-- Left weight plate 2 -->
+    <rect x="108" y="216" width="32" height="80" rx="8"/>
+    <!-- Bar -->
+    <rect x="140" y="238" width="232" height="36" rx="8"/>
+    <!-- Right weight plate 2 -->
+    <rect x="372" y="216" width="32" height="80" rx="8"/>
+    <!-- Right weight plate 1 -->
+    <rect x="412" y="196" width="52" height="120" rx="12"/>
+  </g>
+</svg>
